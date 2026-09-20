@@ -1,0 +1,7 @@
+apiVersion: v2
+name: aidlc-factory
+description: AIDLC Software Factory with Hermes workers and OpenSpec skills
+type: application
+version: 3.0.0
+appVersion: "3.0.0"
+

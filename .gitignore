@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.venv*/
+runtime/
+kubeconfig*
+terraform.tfstate*
+.terraform/
+*.tfplan
+.aidlc-deployment.json
+.tools/
+*.kubeconfig
+*.pem

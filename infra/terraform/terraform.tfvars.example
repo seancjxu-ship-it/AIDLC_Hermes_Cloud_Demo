@@ -1,0 +1,10 @@
+# Copy to terraform.tfvars only when overriding defaults.
+# 仅在需要覆盖默认值时复制为 terraform.tfvars。
+region               = "sa-brazil-1"
+availability_zone    = "sa-brazil-1b"
+prefix               = "aidlc-demo"
+allowed_console_cidr = "0.0.0.0/0" # Restrict for real customer use / 客户环境请收窄
+node_flavor          = "s7n.large.2"
+node_os              = "Huawei Cloud EulerOS 2.0"
+swr_organization     = "aidlc-demo"
+

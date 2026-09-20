@@ -1,0 +1,16 @@
+spec:
+  template:
+    metadata:
+      annotations:
+        aidlc-web-version: "4.0.0"
+    spec:
+      containers:
+        - name: api
+          volumeMounts:
+            - name: web
+              mountPath: /app/web
+              readOnly: true
+      volumes:
+        - name: web
+          configMap:
+            name: aidlc-web

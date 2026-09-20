@@ -1,0 +1,25 @@
+spec:
+  template:
+    metadata:
+      annotations:
+        aidlc-runtime-version: "4.0.0"
+    spec:
+      containers:
+        - name: api
+          volumeMounts:
+            - name: runtime-patch
+              mountPath: /app/aidlc/api.py
+              subPath: api.py
+              readOnly: true
+            - name: runtime-patch
+              mountPath: /app/aidlc/bus.py
+              subPath: bus.py
+              readOnly: true
+            - name: runtime-patch
+              mountPath: /app/aidlc/settings.py
+              subPath: settings.py
+              readOnly: true
+      volumes:
+        - name: runtime-patch
+          configMap:
+            name: aidlc-runtime-patch

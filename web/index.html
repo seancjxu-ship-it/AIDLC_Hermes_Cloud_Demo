@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI-DLC Operations Console</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/evidence.css">
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">HUAWEI CLOUD · BRAZIL CCE + HONG KONG MAAS</p>
+      <h1>AI-DLC Operations Console</h1>
+      <p>Hermes multi-agent delivery observability / Hermes 多 Agent 研发交付可观测控制台</p>
+    </div>
+    <div class="header-status">
+      <span id="live-clock" class="clock">--:--:--</span>
+      <span id="health" class="badge">Checking...</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="card input-card">
+      <div class="section-heading">
+        <div><span class="section-index">01</span><h2>Start AIDLC Run / 发起 AIDLC 任务</h2></div>
+        <span class="region-label">Execution: sa-brazil-1 · Model: ap-southeast-1</span>
+      </div>
+      <label>Git repository / Git 仓库</label>
+      <input id="repository" value="https://github.com/seancjxu-ship-it/AIDLC_Simple_Order_Demo">
+      <div class="grid2">
+        <div><label>Base branch / 基线分支</label><input id="branch" value="main"></div>
+        <div><label>Requirement file / 需求文件</label><input id="requirement" value="demo/GITHUB_ISSUE.md"></div>
+      </div>
+      <div class="run-actions">
+        <button id="run">Run Full AIDLC / 运行完整 AIDLC</button>
+        <p id="run-feedback" class="run-feedback" aria-live="polite">Ready to run / 可以开始运行</p>
+      </div>
+      <p class="note">A live run creates a feature branch and Pull Request and consumes GLM-5.2 tokens. Human approval is still required. / 实时运行会创建功能分支和 PR，并消耗 GLM-5.2 Tokens，最终仍需人工审批。</p>
+    </section>
+
+    <section class="card">
+      <div class="section-heading">
+        <div><span class="section-index">02</span><h2>Historical Statistics / 历史任务统计</h2></div>
+        <span id="last-refresh" class="muted">Waiting for data / 等待数据</span>
+      </div>
+      <div class="metric-grid">
+        <article class="metric"><span>Total Runs / 总任务</span><strong id="metric-total">0</strong><small>All recorded executions / 全部执行</small></article>
+        <article class="metric"><span>Completed / 已完成</span><strong id="metric-completed">0</strong><small id="metric-active">0 active / 运行中</small></article>
+        <article class="metric"><span>Success Rate / 成功率</span><strong id="metric-success">0%</strong><small id="metric-failed">0 failed / 失败</small></article>
+        <article class="metric"><span>GLM-5.2 Tokens</span><strong id="metric-tokens">0</strong><small id="metric-token-detail">0 prompt · 0 completion</small></article>
+        <article class="metric"><span>Average Duration / 平均耗时</span><strong id="metric-duration">0s</strong><small>Terminal runs / 已结束任务</small></article>
+        <article class="metric"><span>Tracked Events / 事件记录</span><strong id="metric-events">0</strong><small>Pod-level timeline / Pod 级时间线</small></article>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-heading">
+        <div><span class="section-index">03</span><h2>Live Pod Execution / Pod 实时执行</h2></div>
+        <span id="status" class="status-pill">No run selected / 未选择任务</span>
+      </div>
+      <div class="pipeline">
+        <div><strong>API</strong><span>request intake</span></div><b>→</b>
+        <div><strong>Orchestrator</strong><span>OpenSpec plan</span></div><b>→</b>
+        <div><strong>Dev</strong><span>GLM + code</span></div><b>→</b>
+        <div><strong>QA</strong><span>test gate</span></div><b>→</b>
+        <div><strong>Review</strong><span>security gate</span></div><b>→</b>
+        <div><strong>Build & Deploy</strong><span>Kaniko → SWR → CCE</span></div>
+      </div>
+      <div id="pod-grid" class="pod-grid"></div>
+    </section>
+
+    <section class="card console-card">
+      <div class="section-heading console-heading">
+        <div><span class="section-index">04</span><h2>Execution Console / 执行控制台</h2></div>
+        <div class="console-meta"><span class="live-dot"></span><span id="console-run-id">Select a run / 选择任务</span></div>
+      </div>
+      <div class="console-columns">
+        <span>TIME / 时间</span><span>SEQ</span><span>POD</span><span>STAGE / 阶段</span><span>RESULT</span><span>DETAIL / 详情</span>
+      </div>
+      <div id="events" class="console-stream" aria-live="polite">
+        <div class="console-empty">Waiting for run events… / 等待任务事件…</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-heading">
+        <div><span class="section-index">05</span><h2>Run History / 历史任务</h2></div>
+        <span class="muted">Click a Run ID to inspect its complete timeline / 点击 Run ID 查看完整时间线</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Run ID</th><th>Started / 开始</th><th>Status / 状态</th><th>Decision / 决策</th><th>Duration / 耗时</th><th>Events</th><th>Tokens</th><th>PR</th></tr></thead>
+          <tbody id="history-body"><tr><td colspan="8">Loading / 加载中…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card evidence-card">
+      <div class="section-heading">
+        <div><span class="section-index">06</span><h2>Skills & Evidence / Skills 与证据</h2></div>
+      </div>
+      <div id="skills" class="skills"></div>
+      <div id="evidence-summary" class="evidence-summary">
+        <p class="evidence-placeholder">Select or run a task to inspect delivery evidence. / 选择或运行任务以查看交付证据。</p>
+      </div>
+      <button id="toggle-raw" class="secondary-button">Show Raw Evidence JSON / 展开原始证据</button>
+      <pre id="result" class="raw-hidden">Raw machine-readable evidence will appear here. / 机器可读原始证据将显示在此处。</pre>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

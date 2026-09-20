@@ -1,0 +1,36 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no"]
+  api:
+    build: .
+    command: ["api"]
+    env_file: .env
+    ports: ["8000:8000"]
+    depends_on: [redis]
+  orchestrator:
+    build: .
+    command: ["orchestrator"]
+    env_file: .env
+    depends_on: [redis]
+  dev-worker:
+    build: .
+    command: ["worker", "dev"]
+    env_file: .env
+    depends_on: [redis]
+  qa-worker:
+    build: .
+    command: ["worker", "qa"]
+    env_file: .env
+    depends_on: [redis]
+  review-worker:
+    build: .
+    command: ["worker", "review"]
+    env_file: .env
+    depends_on: [redis]
+  deploy-worker:
+    build: .
+    command: ["worker", "deploy"]
+    env_file: .env
+    depends_on: [redis]
+

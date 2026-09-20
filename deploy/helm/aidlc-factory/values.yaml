@@ -1,0 +1,31 @@
+image:
+  repository: swr.sa-brazil-1.myhuaweicloud.com/aidlc-demo/aidlc-factory
+  tag: "3.0.0"
+  pullPolicy: Always
+imagePullSecrets:
+  - name: swr-pull
+service:
+  type: NodePort
+  port: 8000
+  nodePort: 30080
+config:
+  redisUrl: ""
+  repositoryUrl: https://github.com/seancjxu-ship-it/AIDLC_Simple_Order_Demo
+  defaultBranch: main
+  maasBaseUrl: https://api-ap-southeast-1.modelarts-maas.com/openai/v1
+  maasModel: glm-5.2
+  swrImageRepo: swr.sa-brazil-1.myhuaweicloud.com/aidlc-demo/order-demo
+  runtimeImage: swr.sa-brazil-1.myhuaweicloud.com/aidlc-demo/aidlc-factory:3.0.0
+  kubernetesNamespace: aidlc-demo
+  imagePullSecret: swr-pull
+  kanikoImage: gcr.io/kaniko-project/executor:v1.23.2-debug
+  previewPort: "8080"
+  buildTimeout: "900"
+  deployTimeout: "300"
+  githubWrite: "true"
+secrets:
+  create: true
+  demoUsername: demo
+  demoPassword: ""
+  githubToken: ""
+  maasApiKey: ""
