@@ -15,14 +15,14 @@ The package can create an independent AIDLC Demo after the operator supplies a H
 ## Prerequisites / 前置条件
 
 - Windows PowerShell 5.1 or PowerShell 7. / Windows PowerShell 5.1 或 PowerShell 7。
-- Huawei Cloud KooCLI (`hcloud`) in `PATH`. / `PATH` 中可用的华为云 KooCLI（`hcloud`）。
-- Docker Desktop running. / Docker Desktop 已启动。
 - Internet access to Huawei Cloud, GitHub, HashiCorp, Kubernetes and Helm download sites. / 可访问华为云、GitHub、HashiCorp、Kubernetes 与 Helm 下载站点。
 - IAM permissions to create/delete VPC, EIP, CCE, ECS/EVS, DCS and SWR resources. / 具备创建和删除 VPC、EIP、CCE、ECS/EVS、DCS 与 SWR 的 IAM 权限。
 
-Terraform, kubectl and Helm are downloaded into the ignored `.tools` directory when absent. Docker Desktop and KooCLI are intentionally treated as workstation prerequisites.
+The scripts download missing Terraform, kubectl, Helm and KooCLI into the ignored `.tools` directory. If Docker Desktop is absent, they download the official installer, install it for the current user, start it and wait for the Docker Engine.
 
-如果本机缺少 Terraform、kubectl 或 Helm，脚本会下载到已忽略的 `.tools` 目录。Docker Desktop 与 KooCLI 作为工作站前置条件处理。
+脚本会把缺少的 Terraform、kubectl、Helm 和 KooCLI 下载到已忽略的 `.tools` 目录。如果没有 Docker Desktop，则下载官方安装程序、为当前用户安装、启动并等待 Docker Engine。
+
+Docker Desktop's first launch may still require accepting its license, enabling WSL 2, approving elevation or restarting Windows. / Docker Desktop 首次启动时仍可能要求接受许可、启用 WSL 2、确认管理员授权或重启 Windows。
 
 ## Beginner workstation setup / 新手工作站准备
 
@@ -46,7 +46,9 @@ Official guide / 官方说明：[Install PowerShell on Windows](https://learn.mi
 
 If Windows blocks local scripts, use `-ExecutionPolicy Bypass` as shown below. It affects only that PowerShell process and does not require a machine-wide policy change. / 如果 Windows 阻止本地脚本，请按下文使用 `-ExecutionPolicy Bypass`；它只对该 PowerShell 进程生效，无需修改整机策略。
 
-### 2. Install KooCLI and add `hcloud` to PATH / 安装 KooCLI 并把 `hcloud` 加入 PATH
+### 2. Automatic KooCLI setup and manual fallback / KooCLI 自动准备与手工备用方案
+
+Normally no manual installation is required: the scripts download the official Windows archive and copy `hcloud.exe` into `.tools`. Use the steps below only when automatic download is blocked. / 正常情况下无需手工安装：脚本会下载官方 Windows 压缩包，并把 `hcloud.exe` 放入 `.tools`。只有自动下载被阻止时，才使用下面的手工备用步骤。
 
 1. Download **KooCLI for Windows** from the Huawei Cloud official page. / 从华为云官方页面下载 **Windows 版 KooCLI**。
 2. Decompress it and place `hcloud.exe` in a stable directory, for example `C:\Tools\HuaweiCloud\KooCLI`. / 解压后，把 `hcloud.exe` 放到固定目录，例如 `C:\Tools\HuaweiCloud\KooCLI`。
@@ -69,9 +71,13 @@ hcloud version
 
 The deployment script passes AK/SK to each KooCLI request. Running `hcloud configure init` is therefore **not required**, which also avoids storing permanent AK/SK in a KooCLI profile. / 部署脚本会在每次 KooCLI 请求中传入 AK/SK，因此**不需要**执行 `hcloud configure init`，也可避免把长期 AK/SK 保存到 KooCLI 配置文件。
 
-### 3. Install and start Docker Desktop / 安装并启动 Docker Desktop
+### 3. Automatic Docker setup and first-launch actions / Docker 自动安装与首次启动操作
 
-1. Install Docker Desktop for Windows. The WSL 2 backend is suitable for most Windows 10/11 workstations. / 安装 Windows 版 Docker Desktop；对大多数 Windows 10/11 工作站，选择 WSL 2 后端即可。
+When Docker is missing, the scripts download the official x86-64 installer, perform a per-user installation, start Docker Desktop and wait up to 180 seconds for the engine. / 如果缺少 Docker，脚本会下载官方 x86-64 安装程序、执行当前用户安装、启动 Docker Desktop，并等待 Docker Engine 最长 180 秒。
+
+If the script reports that the engine is not ready, complete these one-time manual actions: / 如果脚本提示 Engine 尚未就绪，请完成以下一次性人工操作：
+
+1. Open Docker Desktop and accept its license when prompted. The WSL 2 backend is suitable for most Windows 10/11 workstations. / 打开 Docker Desktop，并按提示接受许可；对大多数 Windows 10/11 工作站，选择 WSL 2 后端即可。
 2. If WSL is missing, open PowerShell **as Administrator**, run `wsl --install`, restart Windows if requested, and then start Docker Desktop. / 如果没有 WSL，请以**管理员身份**打开 PowerShell，执行 `wsl --install`，按提示重启 Windows，然后启动 Docker Desktop。
 3. Wait until Docker Desktop reports that the engine is running. / 等待 Docker Desktop 显示 Engine 已运行。
 4. Verify that both Docker Client and Server are displayed: / 验证输出中同时存在 Docker Client 与 Server：
@@ -142,16 +148,23 @@ For strict least-privilege environments, the customer's cloud administrator shou
 
 Official references / 官方参考：[Huawei Cloud system-defined permissions](https://support.huaweicloud.com/intl/en-us/permissions/iam_01_0001.html), [CCE permissions](https://support.huaweicloud.com/intl/en-us/usermanual-cce/cce_10_0187.html), [CCE system agencies](https://support.huaweicloud.com/intl/en-us/usermanual-cce/cce_10_0556.html)
 
-### 6. Let the repository prepare Terraform, kubectl and Helm / 让仓库自动准备 Terraform、kubectl 与 Helm
+### 6. One-command or two-command deployment / 一条命令或两条命令部署
 
-Do not install these three tools manually for the normal demo path. From the repository root, run: / 按照正常 Demo 路径，无需手工安装这三个工具。在仓库根目录执行：
+Recommended one-command mode: `deploy.ps1` automatically runs preflight, prepares all tools, checks Docker, asks for the user's application repository URL and credentials, creates Huawei Cloud resources and deploys the Demo. / 推荐的一条命令模式：`deploy.ps1` 会自动执行预检查、准备全部工具、检查 Docker、询问用户自己的业务仓地址与凭证、创建华为云资源并部署 Demo。
 
 ```powershell
 Set-Location "C:\aidlc\AIDLC_Hermes_Cloud_Demo"
-powershell -ExecutionPolicy Bypass -File ".\scripts\cloud\preflight.ps1"
+powershell -ExecutionPolicy Bypass -File ".\scripts\cloud\deploy.ps1"
 ```
 
-The script creates `.tools`, downloads missing Terraform/kubectl/Helm, adds that directory to `PATH` only for the script process, and verifies all prerequisites. It does not modify the machine-wide `PATH`. / 脚本会创建 `.tools`，下载缺少的 Terraform/kubectl/Helm，只在当前脚本进程中加入 `PATH`，并检查所有前置条件；不会修改整机 `PATH`。
+Two-command mode is useful when the operator wants to validate the workstation before creating billable cloud resources: / 如果操作者希望在创建计费云资源前先验证工作站，可使用两条命令模式：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ".\scripts\cloud\preflight.ps1"
+powershell -ExecutionPolicy Bypass -File ".\scripts\cloud\deploy.ps1" -SkipToolBootstrap
+```
+
+The scripts create `.tools`, download missing Terraform/kubectl/Helm/KooCLI, add that directory to `PATH` only for the script process, and install/start Docker Desktop when needed. They do not add `.tools` to the machine-wide `PATH`. / 脚本会创建 `.tools`，下载缺少的 Terraform/kubectl/Helm/KooCLI，只在当前脚本进程中加入 `PATH`，并按需安装和启动 Docker Desktop；不会把 `.tools` 加入整机 `PATH`。
 
 Expected final message / 预期最终提示：
 
@@ -159,7 +172,13 @@ Expected final message / 预期最终提示：
 Preflight passed / 部署前检查通过。
 ```
 
-`.tools` is excluded by `.gitignore` and must not be committed. If automatic download is blocked, place the matching Windows `terraform.exe`, `kubectl.exe` and `helm.exe` directly in `.tools`. / `.tools` 已被 `.gitignore` 排除，不应提交到 Git。如果自动下载被阻止，可把对应 Windows 版 `terraform.exe`、`kubectl.exe`、`helm.exe` 直接放入 `.tools`。
+`.tools` is excluded by `.gitignore` and must not be committed. If automatic download is blocked, place `terraform.exe`, `kubectl.exe`, `helm.exe` and `hcloud.exe` directly in `.tools`. / `.tools` 已被 `.gitignore` 排除，不应提交到 Git。如果自动下载被阻止，可把 `terraform.exe`、`kubectl.exe`、`helm.exe` 和 `hcloud.exe` 直接放入 `.tools`。
+
+For a centrally managed corporate workstation, IT can install Docker first and the operator can disable automatic Docker installation: / 如果企业工作站由 IT 统一管理软件，可先由 IT 安装 Docker，并禁用自动安装：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ".\scripts\cloud\preflight.ps1" -SkipDockerDesktopInstall
+```
 
 ### 7. Final beginner checklist / 新手最终检查清单
 
@@ -167,16 +186,14 @@ Run these commands in a **new PowerShell window** from the repository root: / �
 
 ```powershell
 $PSVersionTable.PSVersion
-hcloud version
-docker version
 powershell -ExecutionPolicy Bypass -File ".\scripts\cloud\preflight.ps1"
 ```
 
-The workstation is ready when PowerShell is 5.1 or later, `hcloud version` succeeds, `docker version` shows Client and Server, and preflight prints `Preflight passed`. / 当 PowerShell 为 5.1 或更高版本、`hcloud version` 成功、`docker version` 同时显示 Client 与 Server，并且预检查输出 `Preflight passed` 时，工作站准备完成。
+The workstation is ready when PowerShell is 5.1 or later and preflight prints `Preflight passed`. The script verifies all four CLI tools and both Docker Client and Server. / 当 PowerShell 为 5.1 或更高版本，并且预检查输出 `Preflight passed` 时，工作站准备完成；脚本会验证四个 CLI 工具以及 Docker Client 与 Server。
 
 | Symptom / 现象 | Action / 处理方法 |
 |---|---|
-| `hcloud` is not recognized / 找不到 `hcloud` | Reopen PowerShell after updating PATH, then run `Get-Command hcloud`. / 修改 PATH 后重新打开 PowerShell，再执行 `Get-Command hcloud`。 |
+| Preflight cannot find `hcloud` / 预检查找不到 `hcloud` | Check the KooCLI download URL or place `hcloud.exe` in `.tools`. / 检查 KooCLI 下载地址，或把 `hcloud.exe` 放入 `.tools`。 |
 | Docker shows Client but no Server / Docker 只有 Client、没有 Server | Start Docker Desktop and wait for the engine. / 启动 Docker Desktop 并等待 Engine 就绪。 |
 | Download has proxy/certificate errors / 下载出现代理或证书错误 | Ask the network administrator to allow the listed domains and configure the corporate proxy/CA. / 让网络管理员放行域名并配置企业代理或 CA。 |
 | Huawei Cloud returns `403` or `AccessDenied` / 华为云返回 `403` 或 `AccessDenied` | Check authorization in the Brazil project and all listed services. / 检查权限是否授予到巴西项目且覆盖上述全部服务。 |
@@ -197,6 +214,8 @@ $env:AIDLC_GITHUB_TOKEN     = "<GitHub-Fine-Grained-PAT>"
 ```
 
 The GitHub token needs repository **Contents: Read and write** and **Pull requests: Read and write** for the customer application repository. / GitHub Token 需要对客户业务代码仓具备 **Contents: Read and write** 与 **Pull requests: Read and write** 权限。
+
+The token belongs to the person deploying the Demo and must be authorized for the repository passed through `-RepositoryUrl`. A new user should fork the sample application repository and use their own fine-grained token for that fork. Never reuse the original owner's token. / Token 应属于当前部署 Demo 的用户，并对 `-RepositoryUrl` 指定的业务仓库有权限。新用户应 Fork 示例业务仓，并使用自己针对该 Fork 创建的 Fine-grained Token，绝不能复用原仓所有者的 Token。
 
 ## Deploy / 部署
 

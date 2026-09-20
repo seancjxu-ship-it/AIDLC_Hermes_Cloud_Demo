@@ -6,13 +6,15 @@ param(
     [string]$Namespace = "aidlc-demo",
     [string]$SWROrganization = "aidlc-demo",
     [string]$PlatformTag = "4.0.0",
-    [string]$RepositoryUrl = "https://github.com/seancjxu-ship-it/AIDLC_Simple_Order_Demo",
+    [string]$RepositoryUrl = "",
     [string]$DefaultBranch = "main",
     [string]$MaaSBaseUrl = "https://api-ap-southeast-1.modelarts-maas.com/openai/v1",
     [string]$MaaSModel = "glm-5.2",
     [string]$DemoUsername = "demo",
     [string]$DemoPassword = "huawei123",
     [string]$AllowedConsoleCidr = "0.0.0.0/0",
+    [switch]$SkipDockerDesktopInstall,
+    [ValidateRange(30, 600)][int]$DockerStartTimeoutSeconds = 180,
     [switch]$SkipToolBootstrap
 )
 
@@ -27,7 +29,10 @@ $workDir = New-SafeTempDirectory
 
 try {
     if (-not $SkipToolBootstrap) {
-        & (Join-Path $PSScriptRoot "bootstrap-tools.ps1")
+        Write-Host "Preparing workstation tools and Docker / 准备工作站工具与 Docker..."
+        & (Join-Path $PSScriptRoot "preflight.ps1") `
+            -SkipDockerDesktopInstall:$SkipDockerDesktopInstall `
+            -DockerStartTimeoutSeconds $DockerStartTimeoutSeconds
     }
     Add-LocalToolsToPath -RepoRoot $repoRoot
     Assert-Command terraform
@@ -38,6 +43,13 @@ try {
 
     & docker version *> $null
     Assert-LastExitCode "Docker Engine is not reachable. / 无法连接 Docker Engine。"
+
+    if ([string]::IsNullOrWhiteSpace($RepositoryUrl)) {
+        $RepositoryUrl = Read-Host "Customer application GitHub repository URL (use your own fork) / 客户业务 GitHub 仓库地址（请使用自己的 Fork）"
+    }
+    if ([string]::IsNullOrWhiteSpace($RepositoryUrl)) {
+        throw "Customer application repository URL cannot be empty. / 客户业务代码仓地址不能为空。"
+    }
 
     $accessKey = [Environment]::GetEnvironmentVariable("HUAWEICLOUD_ACCESS_KEY")
     if ([string]::IsNullOrWhiteSpace($accessKey)) {

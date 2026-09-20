@@ -9,12 +9,27 @@ class DeliveryAssetsTest(unittest.TestCase):
     def test_one_click_entrypoints_exist(self):
         for relative_path in (
             "scripts/cloud/deploy.ps1",
+            "scripts/cloud/preflight.ps1",
+            "scripts/cloud/bootstrap-tools.ps1",
             "scripts/cloud/status.ps1",
             "scripts/cloud/destroy.ps1",
             "infra/terraform/main.tf",
             "deploy/helm/aidlc-factory/Chart.yaml",
         ):
             self.assertTrue((ROOT / relative_path).is_file(), relative_path)
+
+    def test_one_click_deploy_prepares_workstation(self):
+        deploy = (ROOT / "scripts/cloud/deploy.ps1").read_text(encoding="utf-8")
+        preflight = (ROOT / "scripts/cloud/preflight.ps1").read_text(encoding="utf-8")
+        bootstrap = (ROOT / "scripts/cloud/bootstrap-tools.ps1").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('"preflight.ps1"', deploy)
+        self.assertIn("Docker%20Desktop%20Installer.exe", preflight)
+        self.assertIn("Install-DockerDesktopForCurrentUser", preflight)
+        self.assertIn("huaweicloud-cli-windows-amd64.zip", bootstrap)
+        self.assertIn('"hcloud.exe"', bootstrap)
 
     def test_helm_chart_uses_release_namespace(self):
         manifest = (ROOT / "deploy/helm/aidlc-factory/templates/runtime.yaml").read_text(
@@ -42,4 +57,3 @@ class DeliveryAssetsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

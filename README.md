@@ -72,7 +72,7 @@ The reusable package creates its own VPC, subnet, security group, CCE cluster, C
 
 可复用交付包会创建独立的 VPC、子网、安全组、CCE 集群、CCE Worker/ECS、EIP、DCS Redis 与私有 SWR 仓库，然后构建平台镜像、推送到 SWR，并通过 Helm 安装六类 Pod。
 
-Prerequisites: Windows PowerShell, KooCLI `hcloud`, and a running Docker Desktop. Terraform, kubectl and Helm are bootstrapped into the ignored `.tools` directory when absent. / 前置条件：Windows PowerShell、KooCLI `hcloud` 和已启动的 Docker Desktop。如果缺少 Terraform、kubectl 或 Helm，脚本会安装到已忽略的 `.tools` 目录。
+Prerequisite: Windows PowerShell and outbound internet access. `deploy.ps1` automatically downloads Terraform, kubectl, Helm and KooCLI into `.tools`, and installs/starts Docker Desktop when absent. Docker first launch may still require license acceptance, WSL 2 setup or a Windows restart. / 前置条件：Windows PowerShell 与公网访问。`deploy.ps1` 会自动把 Terraform、kubectl、Helm 和 KooCLI 下载到 `.tools`，并在缺少 Docker Desktop 时自动安装和启动。Docker 首次启动仍可能需要接受许可、配置 WSL 2 或重启 Windows。
 
 Credentials are read from environment variables or requested interactively; they are never committed. / 凭证从环境变量读取或交互式输入，绝不提交到代码仓。
 
@@ -115,4 +115,3 @@ docker compose up --build
 ## Demo boundary / Demo 边界
 
 This repository intentionally targets a low-cost customer demo: one CCE worker and single-node Redis, without multi-AZ, backup, disaster recovery or production-grade identity integration. / 本仓库刻意面向低成本客户演示：单个 CCE Worker、单节点 Redis，不包含多可用区、备份、容灾或生产级身份集成。
-
