@@ -326,6 +326,81 @@ Each event contains an atomic sequence number, timestamp, stage, actor, actual P
 }
 ```
 
+### 5.5 Pod-to-Pod communication model / Pod 间通信模型
+
+The AIDLC Pods do **not** expose a REST endpoint to each other. The customer-facing boundary uses REST/JSON, while internal Agent coordination uses DCS Redis lists carrying JSON-serialized `AgentTask` and `TaskResult` messages.
+
+AIDLC 各 Pod 之间**不通过彼此暴露 REST 接口**进行调用。客户界面使用 REST/JSON；内部 Agent 协作通过 DCS Redis List 传递 JSON 序列化的 `AgentTask` 和 `TaskResult`。
+
+```text
+Customer Browser / API Client
+              │ REST/JSON
+              ▼
+        aidlc-api Pod
+              │ LPUSH aidlc:queue:orchestrator
+              ▼
+        DCS Redis Task Bus
+              │ BRPOP
+              ▼
+    hermes-orchestrator Pod
+              │
+              ├─ LPUSH queue:dev     ─▶ hermes-sf-dev
+              ├─ LPUSH queue:qa      ─▶ hermes-sf-qa
+              ├─ LPUSH queue:review  ─▶ hermes-sf-review
+              └─ LPUSH queue:deploy  ─▶ hermes-sf-deploy
+                                           │
+Each Worker ── LPUSH result:<task_id> ─────┘
+Orchestrator ─ BRPOP result:<task_id> and evaluates the gate
+```
+
+There is no direct `Dev -> QA -> Review -> Deploy` HTTP chain. A Worker returns its result to the Orchestrator; the Orchestrator merges the returned `outputs` into the shared payload and dispatches the next stage only after the current gate passes.
+
+不存在直接的 `Dev -> QA -> Review -> Deploy` HTTP 调用链。Worker 把结果返回 Orchestrator；Orchestrator 将该阶段 `outputs` 合并进共享 Payload，只有当前门禁通过后才分派下一阶段。
+
+### 5.6 Queue operations and execution sequence / 队列操作与执行时序
+
+| Step / 步骤 | Producer / 生产者 | Redis operation / Redis 操作 | Consumer / 消费者 | Payload / 数据 |
+|---:|---|---|---|---|
+| 1 | API Pod | `LPUSH aidlc:queue:orchestrator <run_id>` | Orchestrator | Run identifier / 任务标识 |
+| 2 | Orchestrator | `BRPOP aidlc:queue:orchestrator` | Orchestrator | Blocking wait for a new run / 阻塞等待新任务 |
+| 3 | Orchestrator | `LPUSH aidlc:queue:{role} <AgentTask JSON>` | Role Worker | Repository, branch, stage, Skills and shared outputs / 仓库、分支、阶段、Skills 与共享输出 |
+| 4 | Worker | `BRPOP aidlc:queue:{role}` | Dev, QA, Review or Deploy | One role-specific task / 对应角色任务 |
+| 5 | Worker | `LPUSH aidlc:result:{task_id} <TaskResult JSON>` | Orchestrator | `passed`, summary and outputs / 门禁结果、摘要与输出 |
+| 6 | Orchestrator | `BRPOP aidlc:result:{task_id}` | Orchestrator | Blocking wait, default timeout 600 seconds / 阻塞等待，默认超时 600 秒 |
+| 7 | All runtime Pods | `RPUSH aidlc:events:{run_id} <Event JSON>` | API/Console | Timestamp, Pod hostname, stage, result and metadata / 时间戳、Pod、阶段、结果与元数据 |
+
+`LPUSH` plus blocking `BRPOP` provides FIFO processing for each queue. The Orchestrator and Workers are long-running consumers: an idle Pod blocks on Redis and does not call MaaS or consume model tokens until a task is received.
+
+`LPUSH` 与阻塞式 `BRPOP` 为每个队列提供 FIFO 处理。Orchestrator 和 Worker 是长期运行的消费者；空闲 Pod 阻塞等待 Redis，不会调用 MaaS，也不会产生模型 Token 消耗。
+
+Current Demo queue and state storage uses Huawei Cloud DCS Redis at `192.168.10.107:6379` inside the Brazil VPC.
+
+当前 Demo 的队列与状态存储使用巴西 VPC 内的华为云 DCS Redis：`192.168.10.107:6379`。
+
+### 5.7 Protocol boundary matrix / 通信协议矩阵
+
+| Source / 源 | Destination / 目标 | Protocol / 协议 | Purpose / 用途 |
+|---|---|---|---|
+| Customer browser or customer system / 客户浏览器或客户系统 | `aidlc-api` | HTTP REST + JSON; Basic Auth except `/health` / HTTP REST + JSON；除健康检查外使用 Basic Auth | Start runs, query state/events/evidence, open Console / 创建任务、查询状态/事件/证据、访问 Console |
+| `aidlc-api` | Orchestrator | Redis List + JSON | Submit `run_id`; no direct Pod HTTP call / 提交 run_id，不直接调用 Orchestrator HTTP 接口 |
+| Orchestrator | Dev, QA, Review, Deploy | Redis List + `AgentTask` JSON | Role-based asynchronous dispatch / 按角色异步分派任务 |
+| Dev, QA, Review, Deploy | Orchestrator | Redis List + `TaskResult` JSON | Return gate result and stage outputs / 返回门禁结果与阶段输出 |
+| All AIDLC Pods | DCS Redis | Redis protocol over TCP 6379 | Run state, queues, results, events and evidence / 状态、队列、结果、事件与证据 |
+| API Pod | Preview Service | Cluster-internal HTTP through `*.svc.cluster.local:8080` | Authenticated reverse proxy for `/preview/{run_id}/{path}` / Preview 鉴权反向代理 |
+| Deploy Worker | Preview Service | Cluster-internal HTTP | Health, order and replay smoke tests / 健康检查、订单与重放冒烟测试 |
+| Deploy Worker | CCE Kubernetes API | HTTPS Kubernetes REST API | Create/watch Kaniko Jobs, Preview Deployments, Pods and Services / 创建和观察构建与预览资源 |
+| Dev and Review Workers | Hong Kong ModelArts MaaS GLM-5.2 | HTTPS, OpenAI-compatible JSON API | Code generation and model-assisted review / 代码生成与模型辅助评审 |
+| Dev/Orchestrator | GitHub | HTTPS Git and GitHub REST API | Clone, push branch and create Pull Request / 克隆、推送分支与创建 PR |
+| Kaniko Job Pod | Huawei Cloud SWR | OCI Registry API over HTTPS | Push immutable application image / 推送不可变业务镜像 |
+
+The internal Redis bus was selected instead of synchronous Agent-to-Agent REST calls because AIDLC stages can run for minutes. Queue-based decoupling allows independent Pod restart and scaling, blocking waits with explicit timeouts, centralized state/evidence, and a complete timestamped audit trail.
+
+内部采用 Redis 总线而不是同步的 Agent 间 REST，是因为 AIDLC 阶段可能持续数分钟。队列解耦支持 Pod 独立重启与扩缩容、带明确超时的阻塞等待、集中式状态/证据管理，以及完整的时间戳审计轨迹。
+
+The external REST API remains stable even if the internal transport is later replaced by Kafka, RabbitMQ, Huawei Cloud Distributed Message Service, or Kubernetes Jobs.
+
+即使未来把内部传输替换为 Kafka、RabbitMQ、华为云分布式消息服务或 Kubernetes Job，面向客户的 REST API 仍可保持稳定。
+
 ---
 
 ## 6. Orchestrator Pod detailed design / Orchestrator Pod 详细设计
