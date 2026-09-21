@@ -60,6 +60,7 @@ class DeliveryAssetsTest(unittest.TestCase):
         )
         self.assertNotIn("namespace: aidlc-demo", manifest)
         self.assertIn(".Release.Namespace", manifest)
+        self.assertNotIn("kind: Namespace", manifest)
 
     def test_secrets_and_state_are_gitignored(self):
         ignored = (ROOT / ".gitignore").read_text(encoding="utf-8")
