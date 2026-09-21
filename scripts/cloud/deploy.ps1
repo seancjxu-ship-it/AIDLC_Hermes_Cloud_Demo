@@ -5,7 +5,7 @@ param(
     [string]$Prefix = "aidlc-demo",
     [string]$Namespace = "aidlc-demo",
     [string]$SWROrganization = "aidlc-demo",
-    [string]$PlatformTag = "4.0.0",
+    [string]$PlatformTag = "4.0.1",
     [string]$RepositoryUrl = "",
     [string]$DefaultBranch = "main",
     [string]$MaaSBaseUrl = "https://api-ap-southeast-1.modelarts-maas.com/openai/v1",

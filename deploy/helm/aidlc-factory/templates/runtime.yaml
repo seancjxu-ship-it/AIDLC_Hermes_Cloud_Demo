@@ -99,7 +99,7 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
           resources:
-            requests: {cpu: 100m, memory: 128Mi}
+            requests: {cpu: 25m, memory: 64Mi}
             limits: {cpu: 500m, memory: 512Mi}
 ---
 apiVersion: v1
@@ -140,7 +140,7 @@ spec:
             - configMapRef: {name: aidlc-config}
             - secretRef: {name: aidlc-secrets}
           resources:
-            requests: {cpu: 100m, memory: 128Mi}
+            requests: {cpu: 25m, memory: 64Mi}
             limits: {cpu: 500m, memory: 512Mi}
 ---
 {{- range $role := list "dev" "qa" "review" "deploy" }}
@@ -170,7 +170,7 @@ spec:
             - configMapRef: {name: aidlc-config}
             - secretRef: {name: aidlc-secrets}
           resources:
-            requests: {cpu: 100m, memory: 128Mi}
+            requests: {cpu: 25m, memory: 64Mi}
             limits: {cpu: 750m, memory: 768Mi}
 ---
 {{- end }}

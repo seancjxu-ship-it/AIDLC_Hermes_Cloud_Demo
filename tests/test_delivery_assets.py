@@ -61,6 +61,16 @@ class DeliveryAssetsTest(unittest.TestCase):
         self.assertNotIn("namespace: aidlc-demo", manifest)
         self.assertIn(".Release.Namespace", manifest)
         self.assertNotIn("kind: Namespace", manifest)
+        self.assertEqual(manifest.count("requests: {cpu: 25m, memory: 64Mi}"), 3)
+
+    def test_container_entrypoint_is_linux_compatible(self):
+        attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+        deploy = (ROOT / "scripts/cloud/deploy.ps1").read_text(encoding="utf-8")
+
+        self.assertIn("*.sh text eol=lf", attributes)
+        self.assertIn("sed -i 's/\\r$//'", dockerfile)
+        self.assertIn('[string]$PlatformTag = "4.0.1"', deploy)
 
     def test_secrets_and_state_are_gitignored(self):
         ignored = (ROOT / ".gitignore").read_text(encoding="utf-8")

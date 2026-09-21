@@ -11,9 +11,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
-RUN chmod +x /app/scripts/entrypoint.sh /app/scripts/git-askpass.sh
+RUN sed -i 's/\r$//' /app/scripts/entrypoint.sh /app/scripts/git-askpass.sh \
+    && chmod +x /app/scripts/entrypoint.sh /app/scripts/git-askpass.sh
 
 EXPOSE 8000
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 CMD ["api"]
-
