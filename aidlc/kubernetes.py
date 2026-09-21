@@ -49,8 +49,21 @@ class KubernetesClient:
     def create(self, path: str, body: dict[str, Any]) -> Any:
         return self.request("POST", path, json=body)
 
-    def delete(self, path: str, *, ignore_not_found: bool = False) -> Any:
-        response = self.client.request("DELETE", path)
+    def delete(
+        self,
+        path: str,
+        *,
+        ignore_not_found: bool = False,
+        propagation_policy: str | None = None,
+    ) -> Any:
+        request_options: dict[str, Any] = {}
+        if propagation_policy:
+            request_options["json"] = {
+                "apiVersion": "v1",
+                "kind": "DeleteOptions",
+                "propagationPolicy": propagation_policy,
+            }
+        response = self.client.request("DELETE", path, **request_options)
         if response.status_code == 404 and ignore_not_found:
             return {}
         if response.status_code >= 400:
@@ -90,11 +103,22 @@ class KubernetesClient:
         )
         return data.get("items", [])
 
+    def delete_pod(self, name: str) -> None:
+        self.delete(
+            f"/api/v1/namespaces/{self.namespace}/pods/{name}",
+            ignore_not_found=True,
+        )
+
     def delete_job(self, name: str) -> None:
         self.delete(
             f"/apis/batch/v1/namespaces/{self.namespace}/jobs/{name}",
             ignore_not_found=True,
+            propagation_policy="Background",
         )
+        for pod in self.list_pods(f"job-name={name}"):
+            pod_name = pod.get("metadata", {}).get("name", "")
+            if pod_name:
+                self.delete_pod(pod_name)
 
     def delete_deployment(self, name: str) -> None:
         self.delete(

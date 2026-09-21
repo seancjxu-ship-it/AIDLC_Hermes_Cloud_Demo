@@ -98,6 +98,19 @@ class FrameworkTest(unittest.TestCase):
             [("deployment", "preview-old"), ("service", "preview-old")],
         )
 
+    def test_job_cleanup_explicitly_deletes_dependent_pods(self):
+        client = object.__new__(KubernetesClient)
+        client.namespace = "aidlc-demo"
+        calls: list[tuple] = []
+        client.delete = lambda path, **options: calls.append(("resource", path, options))
+        client.list_pods = lambda selector: [{"metadata": {"name": "build-pod"}}]
+        client.delete_pod = lambda name: calls.append(("pod", name))
+
+        client.delete_job("build-job")
+
+        self.assertEqual(calls[0][2]["propagation_policy"], "Background")
+        self.assertEqual(calls[1], ("pod", "build-pod"))
+
 
 if __name__ == "__main__":
     unittest.main()
