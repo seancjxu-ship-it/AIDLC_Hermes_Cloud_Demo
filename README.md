@@ -72,19 +72,12 @@ The reusable package creates its own VPC, subnet, security group, CCE cluster, C
 
 可复用交付包会创建独立的 VPC、子网、安全组、CCE 集群、CCE Worker/ECS、EIP、DCS Redis 与私有 SWR 仓库，然后构建平台镜像、推送到 SWR，并通过 Helm 安装六类 Pod。
 
-Prerequisite: Windows PowerShell and outbound internet access. `deploy.ps1` automatically downloads Terraform, kubectl, Helm and KooCLI into `.tools`, and installs/starts Docker Desktop when absent. Docker first launch may still require license acceptance, WSL 2 setup or a Windows restart. / 前置条件：Windows PowerShell 与公网访问。`deploy.ps1` 会自动把 Terraform、kubectl、Helm 和 KooCLI 下载到 `.tools`，并在缺少 Docker Desktop 时自动安装和启动。Docker 首次启动仍可能需要接受许可、配置 WSL 2 或重启 Windows。
+Prerequisite: Windows PowerShell and outbound internet access. The command automatically prepares Terraform, kubectl, Helm, KooCLI and Docker Desktop. / 前置条件：Windows PowerShell 与公网访问。命令会自动准备 Terraform、kubectl、Helm、KooCLI 和 Docker Desktop。
 
-Credentials are read from environment variables or requested interactively; they are never committed. / 凭证从环境变量读取或交互式输入，绝不提交到代码仓。
+Run one command from the repository root. It interactively asks for the user's application repository, Huawei Cloud AK/SK, MaaS API Key and the user's own GitHub Token. / 在仓库根目录执行一条命令；脚本会交互式询问用户业务仓、华为云 AK/SK、MaaS API Key 和用户自己的 GitHub Token。
 
 ```powershell
-$env:HUAWEICLOUD_ACCESS_KEY = "<AK>"
-$env:HUAWEICLOUD_SECRET_KEY = "<SK>"
-$env:AIDLC_MAAS_API_KEY     = "<Hong-Kong-MaaS-Key>"
-$env:AIDLC_GITHUB_TOKEN     = "<GitHub-Fine-Grained-PAT>"
-
-.\scripts\cloud\deploy.ps1
-.\scripts\cloud\status.ps1
-.\scripts\cloud\destroy.ps1
+powershell -ExecutionPolicy Bypass -File ".\deploy-demo.ps1"
 ```
 
 Default login / 默认登录：`demo / huawei123`.

@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class DeliveryAssetsTest(unittest.TestCase):
     def test_one_click_entrypoints_exist(self):
         for relative_path in (
+            "deploy-demo.ps1",
             "scripts/cloud/deploy.ps1",
             "scripts/cloud/preflight.ps1",
             "scripts/cloud/bootstrap-tools.ps1",
@@ -19,12 +20,15 @@ class DeliveryAssetsTest(unittest.TestCase):
             self.assertTrue((ROOT / relative_path).is_file(), relative_path)
 
     def test_one_click_deploy_prepares_workstation(self):
+        launcher = (ROOT / "deploy-demo.ps1").read_text(encoding="utf-8")
         deploy = (ROOT / "scripts/cloud/deploy.ps1").read_text(encoding="utf-8")
         preflight = (ROOT / "scripts/cloud/preflight.ps1").read_text(encoding="utf-8")
         bootstrap = (ROOT / "scripts/cloud/bootstrap-tools.ps1").read_text(
             encoding="utf-8"
         )
 
+        self.assertIn('"scripts\\cloud\\deploy.ps1"', launcher)
+        self.assertIn("@PSBoundParameters", launcher)
         self.assertIn('"preflight.ps1"', deploy)
         self.assertIn("Docker%20Desktop%20Installer.exe", preflight)
         self.assertIn("Install-DockerDesktopForCurrentUser", preflight)
