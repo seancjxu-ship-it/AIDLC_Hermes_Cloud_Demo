@@ -35,6 +35,7 @@ class Settings:
     allow_fallback: bool = os.getenv("AIDLC_ALLOW_FALLBACK", "true").lower() == "true"
     work_root: Path = Path(os.getenv("AIDLC_WORK_ROOT", "/tmp/aidlc-runs"))
     task_timeout: int = int(os.getenv("AIDLC_TASK_TIMEOUT", "600"))
+    preview_retention: int = max(1, int(os.getenv("AIDLC_PREVIEW_RETENTION", "2")))
 
 
 settings = Settings()

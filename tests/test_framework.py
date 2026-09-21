@@ -2,7 +2,10 @@ from pathlib import Path
 import unittest
 
 from aidlc.api import dashboard_payload
+from aidlc.kubernetes import KubernetesClient
 from aidlc.models import RunRequest
+from aidlc.orchestrator import result_timeout
+from aidlc.settings import settings
 from aidlc.skills import STAGE_SKILLS, architecture_payload, discover_skills, load_skill_context
 
 
@@ -67,6 +70,33 @@ class FrameworkTest(unittest.TestCase):
         self.assertEqual(payload["summary"]["total_tokens"], 170)
         self.assertEqual(payload["runs"][0]["event_count"], 1)
         self.assertEqual(payload["runs"][0]["duration_seconds"], 12.0)
+
+    def test_deploy_timeout_covers_build_rollout_and_buffer(self):
+        self.assertGreaterEqual(
+            result_timeout("deploy"),
+            settings.build_timeout + settings.deploy_timeout + 300,
+        )
+        self.assertEqual(result_timeout("qa"), settings.task_timeout)
+
+    def test_preview_retention_removes_old_deployment_and_service(self):
+        client = object.__new__(KubernetesClient)
+        client.namespace = "aidlc-demo"
+        client.list_deployments = lambda selector: [
+            {"metadata": {"name": "preview-new", "creationTimestamp": "2026-09-21T12:00:00Z"}},
+            {"metadata": {"name": "preview-middle", "creationTimestamp": "2026-09-21T11:00:00Z"}},
+            {"metadata": {"name": "preview-old", "creationTimestamp": "2026-09-21T10:00:00Z"}},
+        ]
+        deleted: list[tuple[str, str]] = []
+        client.delete_deployment = lambda name: deleted.append(("deployment", name))
+        client.delete_service = lambda name: deleted.append(("service", name))
+
+        removed = client.prune_previews(2, "preview-new")
+
+        self.assertEqual(removed, ["preview-old"])
+        self.assertEqual(
+            deleted,
+            [("deployment", "preview-old"), ("service", "preview-old")],
+        )
 
 
 if __name__ == "__main__":

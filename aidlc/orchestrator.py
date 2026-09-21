@@ -21,6 +21,15 @@ def task_id(run_id: str, role: str) -> str:
     return f"{run_id}:{role}:{uuid.uuid4().hex[:8]}"
 
 
+def result_timeout(role: str) -> int:
+    if role == "deploy":
+        return max(
+            settings.task_timeout,
+            settings.build_timeout + settings.deploy_timeout + 300,
+        )
+    return settings.task_timeout
+
+
 def execute_run(bus: RedisBus, run_id: str) -> None:
     state = bus.get_run(run_id)
     if state is None:
@@ -54,7 +63,7 @@ def execute_run(bus: RedisBus, run_id: str) -> None:
                 {"task_id": task.task_id, "target": f"hermes-sf-{role}", "skills": skill_names},
             )
             bus.submit_task(task)
-            result = bus.wait_result(task.task_id)
+            result = bus.wait_result(task.task_id, timeout=result_timeout(role))
             results[role] = result.model_dump()
             shared.update(result.outputs)
             bus.event(

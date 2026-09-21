@@ -49,6 +49,17 @@ class KubernetesClient:
     def create(self, path: str, body: dict[str, Any]) -> Any:
         return self.request("POST", path, json=body)
 
+    def delete(self, path: str, *, ignore_not_found: bool = False) -> Any:
+        response = self.client.request("DELETE", path)
+        if response.status_code == 404 and ignore_not_found:
+            return {}
+        if response.status_code >= 400:
+            detail = response.text[-2000:]
+            raise RuntimeError(f"Kubernetes API DELETE {path}: HTTP {response.status_code}: {detail}")
+        if not response.content:
+            return {}
+        return response.json()
+
     def pod_logs(self, pod: str, container: str, tail_lines: int = 160) -> str:
         response = self.client.get(
             f"/api/v1/namespaces/{self.namespace}/pods/{pod}/log",
@@ -64,6 +75,70 @@ class KubernetesClient:
             params={"labelSelector": selector},
         )
         return data.get("items", [])
+
+    def list_deployments(self, selector: str) -> list[dict[str, Any]]:
+        data = self.get(
+            f"/apis/apps/v1/namespaces/{self.namespace}/deployments",
+            params={"labelSelector": selector},
+        )
+        return data.get("items", [])
+
+    def list_jobs(self, selector: str) -> list[dict[str, Any]]:
+        data = self.get(
+            f"/apis/batch/v1/namespaces/{self.namespace}/jobs",
+            params={"labelSelector": selector},
+        )
+        return data.get("items", [])
+
+    def delete_job(self, name: str) -> None:
+        self.delete(
+            f"/apis/batch/v1/namespaces/{self.namespace}/jobs/{name}",
+            ignore_not_found=True,
+        )
+
+    def delete_deployment(self, name: str) -> None:
+        self.delete(
+            f"/apis/apps/v1/namespaces/{self.namespace}/deployments/{name}",
+            ignore_not_found=True,
+        )
+
+    def delete_service(self, name: str) -> None:
+        self.delete(
+            f"/api/v1/namespaces/{self.namespace}/services/{name}",
+            ignore_not_found=True,
+        )
+
+    def cleanup_build_jobs(self) -> list[str]:
+        removed: list[str] = []
+        for job in self.list_jobs("app.kubernetes.io/name=aidlc-image-build"):
+            name = job.get("metadata", {}).get("name", "")
+            if name:
+                self.delete_job(name)
+                removed.append(name)
+        return removed
+
+    def prune_previews(self, retain: int, current_name: str) -> list[str]:
+        deployments = sorted(
+            self.list_deployments("app.kubernetes.io/name=aidlc-order-preview"),
+            key=lambda item: (
+                item.get("metadata", {}).get("creationTimestamp", ""),
+                item.get("metadata", {}).get("name", ""),
+            ),
+            reverse=True,
+        )
+        keep = {current_name}
+        for deployment in deployments:
+            name = deployment.get("metadata", {}).get("name", "")
+            if name and len(keep) < max(1, retain):
+                keep.add(name)
+        removed: list[str] = []
+        for deployment in deployments:
+            name = deployment.get("metadata", {}).get("name", "")
+            if name and name not in keep:
+                self.delete_deployment(name)
+                self.delete_service(name)
+                removed.append(name)
+        return removed
 
     def wait_for_job(self, name: str, timeout: int) -> dict[str, Any]:
         path = f"/apis/batch/v1/namespaces/{self.namespace}/jobs/{name}"

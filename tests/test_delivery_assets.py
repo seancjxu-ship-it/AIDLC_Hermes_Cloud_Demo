@@ -72,6 +72,18 @@ class DeliveryAssetsTest(unittest.TestCase):
         self.assertIn("sed -i 's/\\r$//'", dockerfile)
         self.assertIn('[string]$PlatformTag = "4.0.1"', deploy)
 
+    def test_runtime_governance_and_swr_refresh_are_configurable(self):
+        values = (ROOT / "deploy/helm/aidlc-factory/values.yaml").read_text(encoding="utf-8")
+        manifest = (ROOT / "deploy/helm/aidlc-factory/templates/runtime.yaml").read_text(encoding="utf-8")
+        refresh = (ROOT / "scripts/refresh-swr-secret.ps1").read_text(encoding="utf-8")
+
+        self.assertIn('previewRetention: "2"', values)
+        self.assertIn("AIDLC_PREVIEW_RETENTION", manifest)
+        self.assertIn("AIDLC_TASK_TIMEOUT", manifest)
+        self.assertIn("[string]$KubeConfigPath", refresh)
+        self.assertIn("[switch]$UseInternalEndpoint", refresh)
+        self.assertIn("--external=$externalEndpoint", refresh)
+
     def test_secrets_and_state_are_gitignored(self):
         ignored = (ROOT / ".gitignore").read_text(encoding="utf-8")
         for pattern in (".env", "terraform.tfstate*", ".terraform/", ".aidlc-deployment.json"):

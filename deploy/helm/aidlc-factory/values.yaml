@@ -22,6 +22,8 @@ config:
   previewPort: "8080"
   buildTimeout: "900"
   deployTimeout: "300"
+  taskTimeout: "600"
+  previewRetention: "2"
   githubWrite: "true"
 secrets:
   create: true

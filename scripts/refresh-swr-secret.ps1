@@ -3,7 +3,11 @@ param(
     [string]$Region = "sa-brazil-1",
     [string]$ClusterId = "83ce4753-b311-11f1-9614-0255ac1000b6",
     [string]$Namespace = "aidlc-demo",
-    [string]$SecretName = "swr-pull"
+    [string]$SecretName = "swr-pull",
+    [string]$KubeConfigPath = "",
+    [string]$KubeServer = "",
+    [switch]$InsecureSkipTlsVerify,
+    [switch]$UseInternalEndpoint
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,7 +29,7 @@ $cnSuccess = ConvertFrom-Utf8Base64 "U1dSIOWHreivgeWIt+aWsOaIkOWKn+OAguWHreivgea
 
 $workDir = Join-Path ([System.IO.Path]::GetTempPath()) ("aidlc-swr-" + [guid]::NewGuid().ToString("N"))
 $dockerConfigPath = Join-Path $workDir "config.json"
-$kubeConfigPath = Join-Path $workDir "kubeconfig.yaml"
+$temporaryKubeConfigPath = Join-Path $workDir "kubeconfig.yaml"
 $secretManifestPath = Join-Path $workDir "swr-pull-secret.yaml"
 
 New-Item -ItemType Directory -Path $workDir | Out-Null
@@ -47,14 +51,32 @@ try {
     $dockerConfigJson = $dockerConfig | ConvertTo-Json -Depth 10 -Compress
     [System.IO.File]::WriteAllText($dockerConfigPath, $dockerConfigJson, $utf8NoBom)
 
-    Write-Host ("[2/3] Creating a temporary CCE kubeconfig / " + $cnKubeconfig)
-    & hcloud CCE update-kubeconfig --cluster-id $ClusterId --region $Region --external --output $kubeConfigPath
-    if ($LASTEXITCODE -ne 0) {
-        throw ("Failed to create the CCE kubeconfig / " + $cnKubeconfigFail)
+    $effectiveKubeConfigPath = $KubeConfigPath
+    if ([string]::IsNullOrWhiteSpace($effectiveKubeConfigPath)) {
+        Write-Host ("[2/3] Creating a temporary CCE kubeconfig / " + $cnKubeconfig)
+        $externalEndpoint = if ($UseInternalEndpoint) { "false" } else { "true" }
+        & hcloud CCE update-kubeconfig --cluster-id=$ClusterId --region=$Region --external=$externalEndpoint --output=$temporaryKubeConfigPath
+        if ($LASTEXITCODE -ne 0) {
+            throw ("Failed to create the CCE kubeconfig / " + $cnKubeconfigFail)
+        }
+        $effectiveKubeConfigPath = $temporaryKubeConfigPath
+    }
+    elseif (-not (Test-Path -LiteralPath $effectiveKubeConfigPath)) {
+        throw "Kubeconfig file does not exist: $effectiveKubeConfigPath"
+    }
+    else {
+        Write-Host "[2/3] Reusing the supplied kubeconfig."
     }
 
     Write-Host ("[3/3] Updating Kubernetes Secret '" + $SecretName + "' / " + $cnSecret)
-    $secretYaml = & kubectl --kubeconfig $kubeConfigPath -n $Namespace create secret generic $SecretName `
+    $kubectlArgs = @("--kubeconfig", $effectiveKubeConfigPath)
+    if (-not [string]::IsNullOrWhiteSpace($KubeServer)) {
+        $kubectlArgs += @("--server", $KubeServer)
+    }
+    if ($InsecureSkipTlsVerify) {
+        $kubectlArgs += "--insecure-skip-tls-verify=true"
+    }
+    $secretYaml = & kubectl @kubectlArgs -n $Namespace create secret generic $SecretName `
         --type=kubernetes.io/dockerconfigjson `
         --from-file=.dockerconfigjson=$dockerConfigPath `
         --dry-run=client -o yaml
@@ -67,7 +89,7 @@ try {
         ($secretYaml -join [Environment]::NewLine),
         $utf8NoBom
     )
-    & kubectl --kubeconfig $kubeConfigPath apply -f $secretManifestPath
+    & kubectl @kubectlArgs apply -f $secretManifestPath
     if ($LASTEXITCODE -ne 0) {
         throw ("Failed to apply the Kubernetes Secret / " + $cnSecretApplyFail)
     }

@@ -372,6 +372,7 @@ def deploy_task(task: AgentTask) -> TaskResult:
     image_tag = commit[:12]
     image = f"{settings.swr_image_repo}:{image_tag}"
     client = KubernetesClient(namespace)
+    client.cleanup_build_jobs()
     build_manifest = build_job_manifest(
         namespace=namespace,
         run_id=task.run_id,
@@ -392,8 +393,14 @@ def deploy_task(task: AgentTask) -> TaskResult:
         {"task_id": task.task_id, "job": job_name, "image": image, "commit": commit},
     )
     build_started = time.perf_counter()
-    client.create(f"/apis/batch/v1/namespaces/{namespace}/jobs", build_manifest)
-    build = client.wait_for_job(job_name, settings.build_timeout)
+    job_created = False
+    try:
+        client.create(f"/apis/batch/v1/namespaces/{namespace}/jobs", build_manifest)
+        job_created = True
+        build = client.wait_for_job(job_name, settings.build_timeout)
+    finally:
+        if job_created:
+            client.delete_job(job_name)
     build_seconds = round(time.perf_counter() - build_started, 2)
     digest = build.get("digest", "").strip()
     if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
@@ -426,35 +433,50 @@ def deploy_task(task: AgentTask) -> TaskResult:
         "START",
         {"task_id": task.task_id, "deployment": preview_name, "namespace": namespace, "image": immutable_image},
     )
-    client.create(f"/api/v1/namespaces/{namespace}/services", service)
-    client.create(f"/apis/apps/v1/namespaces/{namespace}/deployments", deployment)
-    rollout_started = time.perf_counter()
-    rollout = client.wait_for_deployment(preview_name, settings.deploy_timeout)
-    rollout_seconds = round(time.perf_counter() - rollout_started, 2)
-    delivery_event(
-        task,
-        "CCE_ROLLOUT",
-        f"Preview pod is Ready: {rollout['pod']} / \u9884\u89c8 Pod \u5df2\u5c31\u7eea",
-        "PASS",
-        {"task_id": task.task_id, "deployment": preview_name, "pod": rollout["pod"], "duration_seconds": rollout_seconds},
-    )
+    try:
+        client.create(f"/api/v1/namespaces/{namespace}/services", service)
+        client.create(f"/apis/apps/v1/namespaces/{namespace}/deployments", deployment)
+        rollout_started = time.perf_counter()
+        rollout = client.wait_for_deployment(preview_name, settings.deploy_timeout)
+        rollout_seconds = round(time.perf_counter() - rollout_started, 2)
+        delivery_event(
+            task,
+            "CCE_ROLLOUT",
+            f"Preview pod is Ready: {rollout['pod']} / \u9884\u89c8 Pod \u5df2\u5c31\u7eea",
+            "PASS",
+            {"task_id": task.task_id, "deployment": preview_name, "pod": rollout["pod"], "duration_seconds": rollout_seconds},
+        )
 
-    service_url = f"http://{preview_name}.{namespace}.svc.cluster.local:{settings.preview_port}"
-    delivery_event(
-        task,
-        "SMOKE_TEST",
-        "Running health, functional and idempotency smoke tests / \u6267\u884c\u5065\u5eb7\u3001\u529f\u80fd\u4e0e\u5e42\u7b49\u5192\u70df\u6d4b\u8bd5",
-        "START",
-        {"task_id": task.task_id, "service": preview_name},
-    )
-    smoke = smoke_preview(service_url, task.run_id, commit)
-    delivery_event(
-        task,
-        "SMOKE_TEST",
-        "Preview smoke tests passed / \u9884\u89c8\u73af\u5883\u5192\u70df\u6d4b\u8bd5\u901a\u8fc7",
-        "PASS",
-        {"task_id": task.task_id, "health_status": 200, "functional_status": "CANCELLED", "idempotency": "PASS"},
-    )
+        service_url = f"http://{preview_name}.{namespace}.svc.cluster.local:{settings.preview_port}"
+        delivery_event(
+            task,
+            "SMOKE_TEST",
+            "Running health, functional and idempotency smoke tests / \u6267\u884c\u5065\u5eb7\u3001\u529f\u80fd\u4e0e\u5e42\u7b49\u5192\u70df\u6d4b\u8bd5",
+            "START",
+            {"task_id": task.task_id, "service": preview_name},
+        )
+        smoke = smoke_preview(service_url, task.run_id, commit)
+        delivery_event(
+            task,
+            "SMOKE_TEST",
+            "Preview smoke tests passed / \u9884\u89c8\u73af\u5883\u5192\u70df\u6d4b\u8bd5\u901a\u8fc7",
+            "PASS",
+            {"task_id": task.task_id, "health_status": 200, "functional_status": "CANCELLED", "idempotency": "PASS"},
+        )
+    except Exception:
+        client.delete_deployment(preview_name)
+        client.delete_service(preview_name)
+        raise
+
+    removed_previews = client.prune_previews(settings.preview_retention, preview_name)
+    if removed_previews:
+        delivery_event(
+            task,
+            "CCE_RETENTION",
+            "Old preview environments removed / \u5df2\u6e05\u7406\u8fc7\u671f\u9884\u89c8\u73af\u5883",
+            "PASS",
+            {"task_id": task.task_id, "removed": removed_previews, "retention": settings.preview_retention},
+        )
 
     delivery = {
         "mode": "real",
@@ -486,6 +508,8 @@ def deploy_task(task: AgentTask) -> TaskResult:
             "rollout_seconds": rollout_seconds,
             "internal_url": service_url,
             "preview_path": f"/preview/{task.run_id}/health",
+            "retention": settings.preview_retention,
+            "removed_previews": removed_previews,
         },
         "smoke_test": smoke,
     }

@@ -68,6 +68,8 @@ data:
   AIDLC_PREVIEW_PORT: {{ .Values.config.previewPort | quote }}
   AIDLC_BUILD_TIMEOUT: {{ .Values.config.buildTimeout | quote }}
   AIDLC_DEPLOY_TIMEOUT: {{ .Values.config.deployTimeout | quote }}
+  AIDLC_TASK_TIMEOUT: {{ .Values.config.taskTimeout | quote }}
+  AIDLC_PREVIEW_RETENTION: {{ .Values.config.previewRetention | quote }}
   AIDLC_ALLOW_DEMO_SCAFFOLD: "true"
   AIDLC_ALLOW_FALLBACK: "true"
 ---
