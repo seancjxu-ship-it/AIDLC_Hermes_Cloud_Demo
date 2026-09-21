@@ -14,7 +14,52 @@ You only need: / 只需要：
 
 You do **not** need to install Terraform, kubectl, Helm, KooCLI or Docker Desktop manually. / **不需要**手工安装 Terraform、kubectl、Helm、KooCLI 或 Docker Desktop。
 
-## Deploy with one command / 使用一条命令部署
+## 1. Clone the framework repository / Clone 框架仓到本地
+
+Open PowerShell and check whether Git is available: / 打开 PowerShell，检查 Git 是否可用：
+
+```powershell
+git --version
+```
+
+If Git is not found, install it once and reopen PowerShell: / 如果找不到 Git，安装一次并重新打开 PowerShell：
+
+```powershell
+winget install --id Git.Git -e --source winget
+```
+
+Clone the AIDLC framework into a short local path: / 把 AIDLC 框架仓 Clone 到较短的本地路径：
+
+```powershell
+New-Item -ItemType Directory -Path "C:\aidlc" -Force | Out-Null
+Set-Location "C:\aidlc"
+git clone https://github.com/seancjxu-ship-it/AIDLC_Hermes_Cloud_Demo.git
+Set-Location "C:\aidlc\AIDLC_Hermes_Cloud_Demo"
+```
+
+The framework repository is public, so this clone operation does not require a GitHub token. / 框架仓是公共仓，本次 Clone 不需要 GitHub Token。
+
+If the framework repository already exists locally, update it instead of cloning it again: / 如果本地已经存在框架仓，不要重复 Clone，执行更新：
+
+```powershell
+Set-Location "C:\aidlc\AIDLC_Hermes_Cloud_Demo"
+git pull
+```
+
+## 2. Prepare the customer GitHub input / 准备客户 GitHub 输入
+
+The framework repository above is the deployment program. The application repository is a separate repository that the Agents modify. / 上面的框架仓是部署程序；业务仓是 Agent 实际修改的另一个仓库。
+
+1. Open [AIDLC_Simple_Order_Demo](https://github.com/seancjxu-ship-it/AIDLC_Simple_Order_Demo) in the browser. / 在浏览器打开示例业务仓。
+2. Click **Fork** and create a copy under the deploying user's GitHub account. / 点击 **Fork**，在当前部署用户自己的 GitHub 账号下创建副本。
+3. Record the fork URL, for example `https://github.com/<user>/AIDLC_Simple_Order_Demo`. / 记录 Fork 地址。
+4. In GitHub, open **Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token**. / 在 GitHub 中打开 **Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token**。
+5. Select the deploying user as **Resource owner**, choose **Only select repositories**, and select the fork created above. / Resource owner 选择当前部署用户，Repository access 选择 **Only select repositories**，再选择刚才的 Fork。
+6. Set repository permissions to **Contents: Read and write** and **Pull requests: Read and write**, generate the token and copy it securely. / Repository permissions 设置为 **Contents: Read and write** 和 **Pull requests: Read and write**，生成 Token 并安全保存。
+
+The token belongs to the deploying user and is scoped to that user's fork. Never use or share the original repository owner's token. / Token 属于当前部署用户，只授权其自己的 Fork。不要使用或传播原仓所有者的 Token。
+
+## 3. Deploy with one command / 使用一条命令部署
 
 Open PowerShell in the repository root and run: / 在仓库根目录打开 PowerShell，执行：
 
@@ -32,6 +77,27 @@ The command asks for the following values interactively: / 命令会交互式询
 | GitHub Token | The deploying user's own token for the application repository. / 当前部署用户针对业务仓创建的 Token。 |
 
 The GitHub token must grant the application repository **Contents: Read and write** and **Pull requests: Read and write**. Do not use the original repository owner's token. / GitHub Token 必须对业务仓具备 **Contents: Read and write** 与 **Pull requests: Read and write** 权限。不要使用原仓所有者的 Token。
+
+Example input sequence; values in angle brackets are placeholders and must be replaced: / 输入顺序示例；尖括号内容是占位符，必须替换：
+
+```text
+Customer application GitHub repository URL:
+https://github.com/<user>/AIDLC_Simple_Order_Demo
+
+Huawei Cloud Access Key:
+<your-huawei-cloud-ak>
+
+Huawei Cloud Secret Key:
+<your-huawei-cloud-sk>
+
+ModelArts MaaS API Key (Hong Kong GLM-5.2):
+<your-maas-api-key>
+
+GitHub Token:
+<your-own-fine-grained-token>
+```
+
+The SK, MaaS API Key and GitHub Token inputs are hidden while typing. They are injected into the deployment but are not written into the Git repository. / SK、MaaS API Key 和 GitHub Token 在输入时不会显示明文；它们会注入部署环境，但不会写入 Git 仓库。
 
 ## What the command does automatically / 命令自动完成什么
 

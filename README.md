@@ -77,6 +77,8 @@ Prerequisite: Windows PowerShell and outbound internet access. The command autom
 Run one command from the repository root. It interactively asks for the user's application repository, Huawei Cloud AK/SK, MaaS API Key and the user's own GitHub Token. / 在仓库根目录执行一条命令；脚本会交互式询问用户业务仓、华为云 AK/SK、MaaS API Key 和用户自己的 GitHub Token。
 
 ```powershell
+git clone https://github.com/seancjxu-ship-it/AIDLC_Hermes_Cloud_Demo.git
+Set-Location ".\AIDLC_Hermes_Cloud_Demo"
 powershell -ExecutionPolicy Bypass -File ".\deploy-demo.ps1"
 ```
 
