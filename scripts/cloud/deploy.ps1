@@ -51,11 +51,14 @@ try {
         throw "Customer application repository URL cannot be empty. / 客户业务代码仓地址不能为空。"
     }
 
-    $accessKey = [Environment]::GetEnvironmentVariable("HUAWEICLOUD_ACCESS_KEY")
+    $accessKey = Get-FirstNonEmptyEnvironmentVariable -Names @("HW_ACCESS_KEY", "HUAWEICLOUD_ACCESS_KEY")
     if ([string]::IsNullOrWhiteSpace($accessKey)) {
         $accessKey = Read-Host "Huawei Cloud Access Key / 华为云 AK"
     }
-    $secretKey = Get-RequiredSecret -EnvironmentName "HUAWEICLOUD_SECRET_KEY" -Prompt "Huawei Cloud Secret Key / 华为云 SK"
+    $secretKey = Get-RequiredSecret `
+        -EnvironmentName "HW_SECRET_KEY" `
+        -EnvironmentAliases @("HUAWEICLOUD_SECRET_KEY") `
+        -Prompt "Huawei Cloud Secret Key / 华为云 SK"
     $maasApiKey = Get-RequiredSecret -EnvironmentName "AIDLC_MAAS_API_KEY" -Prompt "ModelArts MaaS API Key (Hong Kong GLM-5.2) / 香港 GLM-5.2 MaaS API Key"
     $githubToken = Get-RequiredSecret -EnvironmentName "AIDLC_GITHUB_TOKEN" -Prompt "GitHub token with Contents and Pull requests read/write / GitHub Token（Contents 与 Pull requests 读写）"
 
@@ -63,9 +66,7 @@ try {
         throw "Huawei Cloud AK/SK cannot be empty. / 华为云 AK/SK 不能为空。"
     }
 
-    $env:HUAWEICLOUD_ACCESS_KEY = $accessKey
-    $env:HUAWEICLOUD_SECRET_KEY = $secretKey
-    $env:HUAWEICLOUD_REGION = $Region
+    Set-HuaweiCloudCredentialEnvironment -AccessKey $accessKey -SecretKey $secretKey -Region $Region
 
     Write-Host "[1/7] Provisioning Huawei Cloud infrastructure with Terraform / 使用 Terraform 创建华为云资源..."
     Push-Location $terraformDir

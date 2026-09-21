@@ -35,6 +35,25 @@ class DeliveryAssetsTest(unittest.TestCase):
         self.assertIn("huaweicloud-cli-windows-amd64.zip", bootstrap)
         self.assertIn('"hcloud.exe"', bootstrap)
 
+    def test_terraform_credentials_use_provider_environment_names(self):
+        common = (ROOT / "scripts/cloud/common.ps1").read_text(encoding="utf-8")
+        deploy = (ROOT / "scripts/cloud/deploy.ps1").read_text(encoding="utf-8")
+        destroy = (ROOT / "scripts/cloud/destroy.ps1").read_text(encoding="utf-8")
+
+        for variable_name in (
+            "HW_ACCESS_KEY",
+            "HW_SECRET_KEY",
+            "HW_REGION_NAME",
+            "HUAWEICLOUD_ACCESS_KEY",
+            "HUAWEICLOUD_SECRET_KEY",
+            "HUAWEICLOUD_REGION",
+        ):
+            self.assertIn(variable_name, common)
+        self.assertIn("Set-HuaweiCloudCredentialEnvironment", deploy)
+        self.assertIn("Set-HuaweiCloudCredentialEnvironment", destroy)
+        self.assertIn('EnvironmentAliases @("HUAWEICLOUD_SECRET_KEY")', deploy)
+        self.assertIn('EnvironmentAliases @("HUAWEICLOUD_SECRET_KEY")', destroy)
+
     def test_helm_chart_uses_release_namespace(self):
         manifest = (ROOT / "deploy/helm/aidlc-factory/templates/runtime.yaml").read_text(
             encoding="utf-8"

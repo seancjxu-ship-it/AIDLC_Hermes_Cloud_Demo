@@ -25,16 +25,51 @@ function Get-PlainText {
     }
 }
 
+function Get-FirstNonEmptyEnvironmentVariable {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$Names
+    )
+    foreach ($name in $Names) {
+        $value = [Environment]::GetEnvironmentVariable($name, "Process")
+        if (-not [string]::IsNullOrWhiteSpace($value)) {
+            return $value
+        }
+    }
+    return $null
+}
+
 function Get-RequiredSecret {
     param(
         [Parameter(Mandatory = $true)][string]$EnvironmentName,
+        [string[]]$EnvironmentAliases = @(),
         [Parameter(Mandatory = $true)][string]$Prompt
     )
-    $value = [Environment]::GetEnvironmentVariable($EnvironmentName)
+    $value = Get-FirstNonEmptyEnvironmentVariable -Names (@($EnvironmentName) + $EnvironmentAliases)
     if (-not [string]::IsNullOrWhiteSpace($value)) {
         return $value
     }
     return Get-PlainText (Read-Host $Prompt -AsSecureString)
+}
+
+function Set-HuaweiCloudCredentialEnvironment {
+    param(
+        [Parameter(Mandatory = $true)][string]$AccessKey,
+        [Parameter(Mandatory = $true)][string]$SecretKey,
+        [Parameter(Mandatory = $true)][string]$Region
+    )
+    $values = @{
+        HW_ACCESS_KEY          = $AccessKey
+        HW_SECRET_KEY          = $SecretKey
+        HW_REGION_NAME         = $Region
+        HUAWEICLOUD_ACCESS_KEY = $AccessKey
+        HUAWEICLOUD_SECRET_KEY = $SecretKey
+        HUAWEICLOUD_REGION     = $Region
+    }
+    foreach ($entry in $values.GetEnumerator()) {
+        [Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, "Process")
+    }
 }
 
 function Assert-LastExitCode {

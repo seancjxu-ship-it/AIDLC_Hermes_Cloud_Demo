@@ -26,12 +26,13 @@ try {
         }
     }
 
-    $accessKey = [Environment]::GetEnvironmentVariable("HUAWEICLOUD_ACCESS_KEY")
+    $accessKey = Get-FirstNonEmptyEnvironmentVariable -Names @("HW_ACCESS_KEY", "HUAWEICLOUD_ACCESS_KEY")
     if ([string]::IsNullOrWhiteSpace($accessKey)) { $accessKey = Read-Host "Huawei Cloud Access Key / 华为云 AK" }
-    $secretKey = Get-RequiredSecret -EnvironmentName "HUAWEICLOUD_SECRET_KEY" -Prompt "Huawei Cloud Secret Key / 华为云 SK"
-    $env:HUAWEICLOUD_ACCESS_KEY = $accessKey
-    $env:HUAWEICLOUD_SECRET_KEY = $secretKey
-    $env:HUAWEICLOUD_REGION = $record.region
+    $secretKey = Get-RequiredSecret `
+        -EnvironmentName "HW_SECRET_KEY" `
+        -EnvironmentAliases @("HUAWEICLOUD_SECRET_KEY") `
+        -Prompt "Huawei Cloud Secret Key / 华为云 SK"
+    Set-HuaweiCloudCredentialEnvironment -AccessKey $accessKey -SecretKey $secretKey -Region $record.region
 
     if (Get-Command kubectl -ErrorAction SilentlyContinue) {
         Push-Location $terraformDir
