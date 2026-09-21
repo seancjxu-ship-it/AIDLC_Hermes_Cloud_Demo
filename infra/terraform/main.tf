@@ -156,11 +156,16 @@ resource "huaweicloud_dcs_instance" "redis" {
   password           = random_password.redis.result
   vpc_id             = huaweicloud_vpc.demo.id
   subnet_id          = huaweicloud_vpc_subnet.demo.id
-  security_group_id  = huaweicloud_networking_secgroup.cce.id
   ssl_enable         = false
   charging_mode      = "postPaid"
   description        = "AIDLC run state, event stream and evidence store"
   tags               = local.tags
+
+  lifecycle {
+    # Redis 6.0 does not support the legacy security-group whitelist API in every region.
+    # Ignore an existing state value so upgrades do not issue an unsupported DCS PUT request.
+    ignore_changes = [security_group_id]
+  }
 }
 
 resource "huaweicloud_swr_organization" "demo" {

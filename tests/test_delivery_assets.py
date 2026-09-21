@@ -79,6 +79,10 @@ class DeliveryAssetsTest(unittest.TestCase):
             self.assertIn(resource_type, terraform)
         self.assertIn('!strcontains(candidate.name, ".free.")', terraform)
         self.assertIn("flavor             = local.dcs_flavor_name", terraform)
+        self.assertNotIn(
+            "security_group_id  = huaweicloud_networking_secgroup.cce.id", terraform
+        )
+        self.assertIn("ignore_changes = [security_group_id]", terraform)
 
 
 if __name__ == "__main__":
