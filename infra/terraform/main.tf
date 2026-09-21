@@ -137,12 +137,21 @@ data "huaweicloud_dcs_flavors" "single" {
   capacity   = 0.125
 }
 
+locals {
+  dcs_billable_flavors = [
+    for candidate in data.huaweicloud_dcs_flavors.single.flavors :
+    candidate
+    if contains(candidate.charging_modes, "Hourly") && !strcontains(candidate.name, ".free.")
+  ]
+  dcs_flavor_name = length(local.dcs_billable_flavors) > 0 ? local.dcs_billable_flavors[0].name : data.huaweicloud_dcs_flavors.single.flavors[0].name
+}
+
 resource "huaweicloud_dcs_instance" "redis" {
   name               = "${var.prefix}-redis"
   engine             = "Redis"
   engine_version     = "6.0"
   capacity           = data.huaweicloud_dcs_flavors.single.capacity
-  flavor             = data.huaweicloud_dcs_flavors.single.flavors[0].name
+  flavor             = local.dcs_flavor_name
   availability_zones = [var.availability_zone]
   password           = random_password.redis.result
   vpc_id             = huaweicloud_vpc.demo.id
@@ -173,4 +182,3 @@ resource "huaweicloud_swr_repository" "application" {
   category     = "app_server"
   is_public    = false
 }
-

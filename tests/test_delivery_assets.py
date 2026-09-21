@@ -76,6 +76,8 @@ class DeliveryAssetsTest(unittest.TestCase):
             "huaweicloud_swr_repository",
         ):
             self.assertIn(resource_type, terraform)
+        self.assertIn('!strcontains(candidate.name, ".free.")', terraform)
+        self.assertIn("flavor             = local.dcs_flavor_name", terraform)
 
 
 if __name__ == "__main__":
