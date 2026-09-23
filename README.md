@@ -1,5 +1,7 @@
 # AIDLC Hermes Cloud Demo / AIDLC Hermes 云端 Demo
 
+> Language / 语言: **English / 中文** | [Português (Brasil)](README_PT_BR.md)
+
 An executable AIDLC software-factory framework on Huawei Cloud. It connects a customer Git repository to a Hermes-style Orchestrator, role-specific Agent Workers, OpenSpec/AIDLC skills, ModelArts Studio MaaS GLM-5.2, DCS Redis, SWR and CCE.
 
 这是一套运行在华为云上的可执行 AIDLC 软件工厂框架。它把客户 Git 代码仓与 Hermes 风格 Orchestrator、角色化 Agent Worker、OpenSpec/AIDLC Skills、ModelArts Studio MaaS GLM-5.2、DCS Redis、SWR 和 CCE 连接起来。
@@ -88,12 +90,18 @@ The destroy script requires the local deployment record and explicit `DESTROY` c
 
 Full instructions / 完整说明：[docs/ONE_CLICK_DEPLOYMENT_CN_EN.md](docs/ONE_CLICK_DEPLOYMENT_CN_EN.md)
 
+Portuguese instructions / 葡萄牙语说明：[docs/IMPLANTACAO_UM_COMANDO_PT_BR.md](docs/IMPLANTACAO_UM_COMANDO_PT_BR.md)
+
 ## Documentation / 文档
 
 - [Detailed design / 详细设计](docs/AIDLC_DETAILED_DESIGN_CN_EN.md)
 - [Skills catalog and stage mapping / Skills 清单与阶段映射](docs/SKILLS_CATALOG_CN_EN.md)
 - [One-click deployment / 一键部署](docs/ONE_CLICK_DEPLOYMENT_CN_EN.md)
 - [Customer PowerPoint / 客户 PPT](docs/presentation/AIDLC_Hermes_Detailed_Design_CN_EN.pptx)
+- [Português (Brasil): customer guide / 客户指南](docs/GUIA_DO_CLIENTE_PT_BR.md)
+- [Português (Brasil): one-command deployment / 单命令部署](docs/IMPLANTACAO_UM_COMANDO_PT_BR.md)
+- [Português (Brasil): Skills catalog / Skills 清单](docs/CATALOGO_DE_SKILLS_PT_BR.md)
+- [Português (Brasil): Terraform infrastructure / Terraform 基础设施](infra/terraform/README_PT_BR.md)
 
 ## Local development / 本地开发
 

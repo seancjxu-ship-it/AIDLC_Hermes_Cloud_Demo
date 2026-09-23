@@ -1,5 +1,7 @@
 # One-command deployment and destruction / 一条命令部署与销毁
 
+> Language / 语言: **English / 中文** | [Português (Brasil)](IMPLANTACAO_UM_COMANDO_PT_BR.md)
+
 This guide is intentionally short. The deployment command prepares the workstation tools, creates Huawei Cloud resources and deploys the complete AIDLC Demo. / 本指导刻意保持简洁。部署命令会自动准备工作站工具、创建华为云资源并部署完整的 AIDLC Demo。
 
 ## Before you start / 开始前

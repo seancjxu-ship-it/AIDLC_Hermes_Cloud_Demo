@@ -1,5 +1,7 @@
 # Terraform infrastructure / Terraform 基础设施
 
+> Language / 语言: **English / 中文** | [Português (Brasil)](README_PT_BR.md)
+
 This module creates the minimum Huawei Cloud resources required by the demo in `sa-brazil-1`: VPC, subnet, security group, two EIPs, one CCE cluster, one CCE worker/ECS, one DCS Redis instance, and two private SWR repositories.
 
 该模块在 `sa-brazil-1` 创建 Demo 所需的最小华为云资源：VPC、子网、安全组、两个 EIP、一个 CCE 集群、一个 CCE Worker/ECS、一个 DCS Redis 实例和两个私有 SWR 仓库。

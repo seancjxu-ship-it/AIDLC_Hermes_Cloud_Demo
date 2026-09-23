@@ -1,5 +1,7 @@
 # AI-DLC Skills Catalog and Stage Mapping / AI-DLC Skills 清单与环节映射
 
+> Language / 语言: **English / 中文** | [Português (Brasil)](CATALOGO_DE_SKILLS_PT_BR.md)
+
 This document explains every Skill packaged in the demo, where it is used, what it consumes, and what evidence it produces.
 
 本文说明 Demo 中预置的全部 Skill、所在研发环节、输入内容、执行动作及输出证据。
